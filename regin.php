@@ -43,6 +43,8 @@
 					<input name="_password" type="password" placeholder="" onkeypress="return PressToEnter(event)"/>
 					<div class = "sub-name">Повторите пароль:</div>
 					<input name="_passwordCopy" type="password" placeholder="" onkeypress="return PressToEnter(event)"/>
+					<div class = "sub-name">Email:</div>
+					<input name="_email" type="email" placeholder="user@example.com" onkeypress="return PressToEnter(event)"/>
 					
 					<a href="login.php">Вернуться</a>
 					<input type="button" class="button" value="Зайти" onclick="RegIn()" style="margin-top: 0px;"/>
@@ -65,17 +67,33 @@
 				var _login = document.getElementsByName("_login")[0].value;
 				var _password = document.getElementsByName("_password")[0].value;
 				var _passwordCopy = document.getElementsByName("_passwordCopy")[0].value;
+				var _email = document.getElementsByName("_email")[0].value;
 				
-				if(_login != "") {
-					if(_password != "") {
-						if(_password == _passwordCopy) {
-							loading.style.display = "block";
-							button.className = "button_diactive";
-							
-							var data = new FormData();
-							data.append("login", _login);
-							data.append("password", _password);
-							
+				// Проверка email
+				if (!_email.includes('@') || !_email.includes('.')) {
+					alert("Введите корректный email");
+					return;
+				}
+				
+				// Проверка пароля
+				var passwordErrors = validatePassword(_password);
+				if (passwordErrors.length > 0) {
+					alert("Ошибки в пароле:\n" + passwordErrors.join("\n"));
+					return;
+				}
+				
+				if(_password != _passwordCopy) {
+					alert("Пароли не совпадают");
+					return;
+				}
+				
+				loading.style.display = "block";
+				button.className = "button_diactive";
+				
+				var data = new FormData();
+				data.append("login", _login);
+				data.append("password", _password);
+				data.append("email", _email);
 							// AJAX запрос
 							$.ajax({
 								url         : 'ajax/regin_user.php',
@@ -89,9 +107,18 @@
 								contentType : false, 
 								// функция успешного ответа сервера
 								success: function (_data) {
-									console.log("Авторизация прошла успешно, id: " +_data);
-									if(_data == -1) {
-										alert("Пользователь с таким логином существует.");
+									console.log("Ответ сервера: " + _data);
+									
+									if(_data.startsWith("password_error:")) {
+										alert("Ошибка пароля: " + _data.split(":")[1]);
+										loading.style.display = "none";
+										button.className = "button";
+									} else if(_data.startsWith("email_error:")) {
+										alert("Ошибка email: " + _data.split(":")[1]);
+										loading.style.display = "none";
+										button.className = "button";
+									} else if(_data == "-1") {
+										alert("Пользователь с таким логином или email уже существует.");
 										loading.style.display = "none";
 										button.className = "button";
 									} else {
@@ -107,11 +134,7 @@
 									button.className = "button";
 								}
 							});
-						} else alert("Пароли не совподают.");
-					} else alert("Введите пароль.");
-				} else alert("Введите логин.");
 			}
-			
 			function PressToEnter(e) {
 				if (e.keyCode == 13) {
 					var _login = document.getElementsByName("_login")[0].value;
@@ -126,6 +149,28 @@
 						}
 					}
 				}
+			}
+			// Функции для проверки пароля
+			function validatePassword(password) {
+				var errors = [];
+				
+				if (password.length < 8) {
+					errors.push("Пароль должен содержать минимум 8 символов");
+				}
+				if (!/[A-Z]/.test(password)) {
+					errors.push("Пароль должен содержать хотя бы одну заглавную букву");
+				}
+				if (!/[a-z]/.test(password)) {
+					errors.push("Пароль должен содержать хотя бы одну строчную латинскую букву");
+				}
+				if (!/[0-9]/.test(password)) {
+					errors.push("Пароль должен содержать хотя бы одну цифру");
+				}
+				if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+					errors.push("Пароль должен содержать хотя бы один специальный символ (!@#$%^&* и т.д.)");
+				}
+				
+				return errors;
 			}
 			
 		</script>
